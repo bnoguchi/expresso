@@ -71,6 +71,10 @@ var only = [];
  */
 
 var match = '';
+ * Tag conditional for filtering tests.
+ */
+var tagCond = null;
+var tagsBase = {};
 
 /**
  * Boring output.
@@ -130,6 +134,7 @@ var usage = ''
     + '\n  -r, --require PATH   Require the given module path'
     + '\n  -o, --only TESTS     Execute only the comma sperated TESTS (can be set several times)'
     + '\n  -m, --match EXP      Execute only tests matching a given regular expression (can be set several times)'
+    + '\n  -T, --tags TAGS      Execute only the tests that satisfy TAGS'
     + '\n  -p, --port NUM       Port number for test servers, starts at 5555'
     + '\n  -s, --serial         Execute tests serially'
     + '\n  -b, --boring         Suppress ansi-escape colors'
@@ -169,6 +174,16 @@ while (args.length) {
                 match += (match.length > 0 ? '|' : '') + arg;
             } else {
                 throw new Error('--match requires argument');
+        case '-T':
+        case '--tags':
+            if (arg = args.shift()) {
+                tagCond = arg
+                tagsBase = tagCond.split(/ +&& +| +\|\| +/).reduce( function (hash, tag) {
+                    hash[tag] = false;
+                    return hash
+                }, {});
+            } else {
+                throw new Error('--tags requires a boolean tag expression');
             }
             break;
         case '-p':
@@ -838,6 +853,24 @@ function runSuite(title, tests, callback) {
     // Regular expression test filter
     var filter = new RegExp('(?:' + (match.length == 0 ? '.' : match) + ')');
     
+    if (tagCond) keys = keys.filter( function (key) {
+        var terms = key.split(/ +/),
+            term,
+            i = terms.length,
+            tag,
+            tags = Object.create(tagsBase);
+        while (i--) {
+            term = terms[i];
+            if (term.charAt(0) !== '@')
+                break;
+            tag = term.substr(1);
+            tags[tag] = true
+        }
+        with (tags) {
+            return eval(tagCond);
+        }
+    });
+
     // Setup
     var setup = tests.setup || function(fn, assert) { fn(); };
     var teardown = tests.teardown || function(fn, assert) { fn(); };
