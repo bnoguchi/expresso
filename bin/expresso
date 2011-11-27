@@ -71,6 +71,8 @@ var only = [];
  */
 
 var match = '';
+
+/**
  * Tag conditional for filtering tests.
  */
 var tagCond = null;
@@ -174,6 +176,7 @@ while (args.length) {
                 match += (match.length > 0 ? '|' : '') + arg;
             } else {
                 throw new Error('--match requires argument');
+            }
         case '-T':
         case '--tags':
             if (arg = args.shift()) {
